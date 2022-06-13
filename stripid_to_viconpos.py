@@ -3,6 +3,9 @@ import json
 import numpy as np
 import pandas as pd
 from time import sleep, time
+import seaborn as sns
+import matplotlib.pylab as plt
+
 
 broker_address = "129.217.152.1"
 data = []
@@ -10,6 +13,12 @@ rssi = []
 rssi_avg = 0
 magnetometer = []
 magneto_avg = 0
+count = 0
+cond = True
+
+rssi_mat = np.zeros((23,15))
+data_mag = np.zeros((23,15))
+data_mat = []
 
 RPi_IPs = [
             {"column_num": 1, "ip_addr": "129.217.152.74", "mac_id": "b8:27:eb:41:99:a0", "hostname": "raspberrypi"},
@@ -40,8 +49,6 @@ RPi_IPs = [
 
 #Import vicon_node_positions.csv
 Vicon_Coords = pd.read_csv("vicon_node_positions.csv")
-#Vicon_Coords = Vicon_Coords.astype({'strip_id':'string'})
-#Vicon_Coords = Vicon_Coords.astype({'node_id':'string'})
 print(Vicon_Coords)
 
 
@@ -101,42 +108,88 @@ def on_connect(client, userdata, flags, rc):
         for node in range(1,16): # range 1 to 16 is an array from 1 to 15.
             client.subscribe("imu_reader/"+RPi['mac_id']+"/"+str(node))
 
+
+
 def on_message(client, userdata, msg):
     if msg.payload.decode():
+        global count
         j_msg = json.loads(msg.payload.decode('utf-8'))
         data = j_msg['data']
+
         #print(type(j_msg['data']))
-        #print(j_msg) #print(j_msg['strip_id'], j_msg['node_id'], j_msg['data'])
+        #print(j_msg)
+        #strip_id = convert_strip_id(j_msg['strip_id'])
+        #print(strip_id, j_msg['node_id'], j_msg['data'])
         for i in range(len(data)):
             rssi.append(data[i]['r'])
+            #print((data[i]['r']))
             magnetometer.append(data[i]['m'])
+
         rssi_avg = np.mean(rssi, axis=0)
         magneto_avg = np.mean(magnetometer, axis=0)
         strip_id = convert_strip_id(j_msg['strip_id'])
-        #print(magnetometer)
-        # #print(strip_id, j_msg['node_id'], "rssi avg: ", rssi_avg,"avg magneto: ", magneto_avg)
+        # count += 1
+        # if count == 345:
+        #     print(count)
+        #     print("--------------------------------------------------------")
+        #     print(rssi_mat)
+        #     print(data_mag)
+        #     return False
+        #     #client.loop_stop()
+        # else:
+        #     rssi_mat[int(strip_id)-1][int(j_msg['node_id'])-1] = rssi_avg[0]
+        #     data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
+        #     print(count)
+        # print(data_mat)
+        # rssi_mat[int(strip_id)-1][int(j_msg['node_id'])-1] = rssi_avg[0]
+        # data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
+        # print("--------------------------------------------------------")
+        # print(rssi_mat)
+        # print(data_mag)
+
+        timestamp = time()
+        #data_to_store = {'strip_id: ': strip_id, 'node_id ': j_msg['node_id'], 'r': rssi_avg, 'm': magneto_avg[0]}
+        data_to_store = str(timestamp) + ", " + str(strip_id) + ", " + str(j_msg['node_id']) + ", " + str(rssi_avg[0]) + ", " + str(magneto_avg[0])
+
+
+        with open("datalog.txt", "a") as test_data:
+            test_data.write(data_to_store + '\n')
+        test_data.close()
+
+        print(strip_id, j_msg['node_id'], "rssi avg: ", rssi_avg,"avg magneto: ", magneto_avg)
         # #if rssi_avg < 0 & magneto_avg[0] > 0 & magneto_avg[1] > 0
-        if magneto_avg[0] > 0:
+        # static: rssi > -50; magneto =~ 60; surrounding: rssi =~ 56, magneto
+        #if (rssi_avg > -80 and rssi_avg < -10 and magneto_avg[0] > 0 and magneto_avg[0] < 270) or (rssi_avg > -50 and rssi_avg < -5 and magneto_avg[0] > -80 and magneto_avg[0] < 0 ):
+        #if False:
+        #if magneto_avg[0] > 20:
+        if strip_id > 3 and strip_id < 12 and rssi_avg > -70 and rssi_avg < -15 and magneto_avg[0] > -5 and magneto_avg[0] < 260:
+            #print("Filtered: ", strip_id, j_msg['node_id'], rssi_avg, magneto_avg)
+            # with open("datalog.txt", "a") as test_data:
+            #     # test_data.write(json.dumps(data) + '\n')
+            #     test_data.write("Filtered: " + data_to_store + '\n')
+            # test_data.close()
+            # print(strip_id, j_msg['node_id'], magneto_avg, magnetometer)
             df2 = Vicon_Coords.loc[(Vicon_Coords['strip_id'] == strip_id) & (Vicon_Coords['node_id'] == float(j_msg['node_id']))]
             x_coord = df2['vicon_x'].values[0].round(3)
             y_coord = df2['vicon_y'].values[0].round(3)
-            #LaserX => 1700f + transform.position.x * 1000f + 75f) * 2.95f
-            # #LaserY => 15500f + transform.position.z * 1000f + 4060f) * 2.95f
-            #print(x_coord, y_coord)
-            rssi.clear()
-            magnetometer.clear()
 
-            #construct topic for publishing
+            print(x_coord, y_coord)
+
+            # #construct topic for publishing
             mqtt_publish_topic = 'imu_reader/viconpos'
             publish_start_time = time()
-            data_to_publish = {'vicon_x': x_coord,
-                                'vicon_y': y_coord,
-                                'timestamp': time()
-                               }
-            ret = client.publish(mqtt_publish_topic, json.dumps(data_to_publish))
-            print(data_to_publish)
-
-
+            #data_to_publish = {'timestamp': time(),
+                                # 'vicon_x': x_coord,
+                                # 'vicon_y': y_coord
+                                # }
+            #msg_to_laser = { "subject" : "MR-1", "duration" : 10, "color" : "red", "shape" : "circle", "pointCount" : 16, "xscale" : x_coord, "yscale" : y_coord, "animation" : "pulse", "visible" : "true"}
+            msg_to_laser = {"subject": "MR-1", "duration": 10, "color": "red", "shape": "circle", "pointCount": 16,
+                            "animation": "pulse", "visible": "true", "xpos" : x_coord, "ypos" : y_coord, "vicon_tracker" : "false"}
+                            # "target" : {x_coord, y_coord, 0.0}}
+            ret = client.publish(mqtt_publish_topic, json.dumps(msg_to_laser))
+            print(msg_to_laser)
+        rssi.clear()
+        magnetometer.clear()
 
 #fab imuread must run in parallel to trigger the broker
 #Set paho mqtt callback
@@ -151,8 +204,14 @@ client.enable_bridge_mode()
 #client.loop_start()
 #client.loop_forever()
 
+# while True:
+#     if cond == True:
+#         client.loop_forever()
+#     if cond == False:
+#         client.loop_stop()
+#         break
 try:
-    client.loop_forever()
+   client.loop_forever()
 except:
-    print('disconnect')
-    client.disconnect()
+  print('disconnect')
+  client.disconnect()
