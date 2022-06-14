@@ -128,27 +128,32 @@ def on_message(client, userdata, msg):
         rssi_avg = np.mean(rssi, axis=0)
         magneto_avg = np.mean(magnetometer, axis=0)
         strip_id = convert_strip_id(j_msg['strip_id'])
+        #to plot the heatmap //uncomment this section
         # count += 1
         # if count == 345:
         #     print(count)
+        #     count = 0
         #     print("--------------------------------------------------------")
         #     print(rssi_mat)
         #     print(data_mag)
-        #     return False
+        #     sns.heatmap(rssi_mat, annot=True, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
+        #     plt.title("RSSI Heatmap")
+        #     plt.xlabel("Node ID")
+        #     plt.ylabel("Strip ID")
+        #     plt.show()
+        #     sns.heatmap(data_mag, annot=True, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
+        #     plt.title("Magnetometer Heatmap")
+        #     plt.xlabel("Node ID")
+        #     plt.ylabel("Strip ID")
+        #     plt.show()
+        #     return cond == False
         #     #client.loop_stop()
         # else:
         #     rssi_mat[int(strip_id)-1][int(j_msg['node_id'])-1] = rssi_avg[0]
         #     data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
         #     print(count)
-        # print(data_mat)
-        # rssi_mat[int(strip_id)-1][int(j_msg['node_id'])-1] = rssi_avg[0]
-        # data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
-        # print("--------------------------------------------------------")
-        # print(rssi_mat)
-        # print(data_mag)
 
         timestamp = time()
-        #data_to_store = {'strip_id: ': strip_id, 'node_id ': j_msg['node_id'], 'r': rssi_avg, 'm': magneto_avg[0]}
         data_to_store = str(timestamp) + ", " + str(strip_id) + ", " + str(j_msg['node_id']) + ", " + str(rssi_avg[0]) + ", " + str(magneto_avg[0])
 
 
@@ -162,7 +167,7 @@ def on_message(client, userdata, msg):
         #if (rssi_avg > -80 and rssi_avg < -10 and magneto_avg[0] > 0 and magneto_avg[0] < 270) or (rssi_avg > -50 and rssi_avg < -5 and magneto_avg[0] > -80 and magneto_avg[0] < 0 ):
         #if False:
         #if magneto_avg[0] > 20:
-        if strip_id > 3 and strip_id < 12 and rssi_avg > -70 and rssi_avg < -15 and magneto_avg[0] > -5 and magneto_avg[0] < 260:
+        if strip_id > 3 and strip_id < 11 and rssi_avg > -67 and rssi_avg < -20 and magneto_avg[0] > -3 and magneto_avg[0] < 260:
             #print("Filtered: ", strip_id, j_msg['node_id'], rssi_avg, magneto_avg)
             # with open("datalog.txt", "a") as test_data:
             #     # test_data.write(json.dumps(data) + '\n')
@@ -178,13 +183,8 @@ def on_message(client, userdata, msg):
             # #construct topic for publishing
             mqtt_publish_topic = 'imu_reader/viconpos'
             publish_start_time = time()
-            #data_to_publish = {'timestamp': time(),
-                                # 'vicon_x': x_coord,
-                                # 'vicon_y': y_coord
-                                # }
-            #msg_to_laser = { "subject" : "MR-1", "duration" : 10, "color" : "red", "shape" : "circle", "pointCount" : 16, "xscale" : x_coord, "yscale" : y_coord, "animation" : "pulse", "visible" : "true"}
-            msg_to_laser = {"subject": "MR-1", "duration": 10, "color": "red", "shape": "circle", "pointCount": 16,
-                            "animation": "pulse", "visible": "true", "xpos" : x_coord, "ypos" : y_coord, "vicon_tracker" : "false"}
+            msg_to_laser = {"subject": "MR-1", "duration": 10, "color": "red", "shape": "circle", "pointCount": 16, "animation": "pulse", "visible": "true",
+                            "xpos" : x_coord, "ypos" : y_coord, "vicon_tracker" : "false"}
                             # "target" : {x_coord, y_coord, 0.0}}
             ret = client.publish(mqtt_publish_topic, json.dumps(msg_to_laser))
             print(msg_to_laser)
@@ -205,13 +205,16 @@ client.enable_bridge_mode()
 #client.loop_forever()
 
 # while True:
-#     if cond == True:
-#         client.loop_forever()
+#     client.loop_forever()
 #     if cond == False:
 #         client.loop_stop()
 #         break
 try:
-   client.loop_forever()
+    while True:
+        client.loop_forever()
+        if cond == False:
+            client.loop_stop()
+            break
 except:
   print('disconnect')
   client.disconnect()
