@@ -14,6 +14,7 @@ rssi_avg = 0
 magnetometer = []
 magneto_avg = 0
 count = 0
+count_plt = 0
 cond = True
 
 rssi_mat = np.zeros((23,15))
@@ -112,7 +113,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     if msg.payload.decode():
-        global count
+        global count, count_plt
         j_msg = json.loads(msg.payload.decode('utf-8'))
         data = j_msg['data']
 
@@ -128,30 +129,82 @@ def on_message(client, userdata, msg):
         rssi_avg = np.mean(rssi, axis=0)
         magneto_avg = np.mean(magnetometer, axis=0)
         strip_id = convert_strip_id(j_msg['strip_id'])
+
         #to plot the heatmap //uncomment this section
-        # count += 1
-        # if count == 345:
-        #     print(count)
-        #     count = 0
-        #     print("--------------------------------------------------------")
-        #     print(rssi_mat)
-        #     print(data_mag)
-        #     sns.heatmap(rssi_mat, annot=True, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
-        #     plt.title("RSSI Heatmap")
-        #     plt.xlabel("Node ID")
-        #     plt.ylabel("Strip ID")
-        #     plt.show()
-        #     sns.heatmap(data_mag, annot=True, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
-        #     plt.title("Magnetometer Heatmap")
-        #     plt.xlabel("Node ID")
-        #     plt.ylabel("Strip ID")
-        #     plt.show()
-        #     return cond == False
-        #     #client.loop_stop()
-        # else:
-        #     rssi_mat[int(strip_id)-1][int(j_msg['node_id'])-1] = rssi_avg[0]
-        #     data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
-        #     print(count)
+        count += 1
+        if count == 345 and count_plt < 6:
+            count_plt += 1
+            #print(count)
+            count = 0
+            print("--------------------------------------------------------")
+            print(rssi_mat)
+            print(data_mag)
+            plt.figure(figsize=(15, 9))
+            sns.heatmap(rssi_mat, annot=True, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
+            plt.title("RSSI Heatmap")
+            plt.xlabel("Node ID")
+            plt.ylabel("Strip ID")
+            #plt.figure(figsize=(1.589, 9.88), dpi=100)
+            plt.tight_layout()
+            plt.savefig('1506_RSSI_Static_5_Sensor_UHR' + str(count_plt) + '.png')
+            #plt.show()
+
+            plt.figure(figsize=(15, 9))
+            sns.heatmap(data_mag, annot=True, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
+            #sns.set(rc={"figure.figsize": (15, 9)})
+            plt.title("Magnetometer Heatmap")
+            plt.xlabel("Node ID")
+            plt.ylabel("Strip ID")
+            #plt.figure(figsize=(1.589, 9.88), dpi=100)
+            plt.tight_layout()
+            plt.savefig('1506_Mag_Static_5_Sensor_UHR' + str(count_plt) + '.png')
+            #plt.show()
+
+
+        else:
+            rssi_mat[int(strip_id)-1][int(j_msg['node_id'])-1] = rssi_avg[0]
+            data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
+            print(strip_id, j_msg['node_id'])
+            if strip_id > 1 and strip_id < 14 and int(j_msg['node_id']) > 0 and int(j_msg['node_id']) < 14:
+                print(rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1])
+                print(rssi_mat[int(strip_id)][int(j_msg['node_id'])])
+                print(rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1])
+                if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
+                rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
+                rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
+                rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20 and
+                rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20):
+                #rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20):
+                    #and
+                        # rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][
+                        #     int(j_msg['node_id']) + 1] < -20 and
+                        # rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id + 1)][
+                        #     int(j_msg['node_id']) + 1] < -20):
+                    print("True 2")
+                    # if strip_id > 3 and strip_id < 11 and rssi_avg > -69 and rssi_avg < -20 and magneto_avg[0] > -3 and magneto_avg[0] < 370:
+
+                    # print("Filtered: ", strip_id, j_msg['node_id'], rssi_avg, magneto_avg)
+                    # with open("datalog.txt", "a") as test_data:
+                    #     # test_data.write(json.dumps(data) + '\n')
+                    #     test_data.write("Filtered: " + data_to_store + '\n')
+                    # test_data.close()
+                    # print(strip_id, j_msg['node_id'], magneto_avg, magnetometer)
+                    df2 = Vicon_Coords.loc[
+                        (Vicon_Coords['strip_id'] == strip_id) & (Vicon_Coords['node_id'] == float(j_msg['node_id']))]
+                    x_coord = df2['vicon_x'].values[0].round(3)
+                    y_coord = df2['vicon_y'].values[0].round(3)
+
+                    print(x_coord, y_coord)
+
+                    # #construct topic for publishing
+                    mqtt_publish_topic = 'imu_reader/viconpos'
+                    # publish_start_time = time()
+                    msg_to_laser = {"subject": "MR-1", "duration": 10, "color": "red", "shape": "circle",
+                                    "pointCount": 16, "animation": "pulse", "visible": "true",
+                                    "xpos": x_coord, "ypos": y_coord, "vicon_tracker": "false"}
+                    # "target" : {x_coord, y_coord, 0.0}}
+                    ret = client.publish(mqtt_publish_topic, json.dumps(msg_to_laser))
+                    print(msg_to_laser)
 
         timestamp = time()
         data_to_store = str(timestamp) + ", " + str(strip_id) + ", " + str(j_msg['node_id']) + ", " + str(rssi_avg[0]) + ", " + str(magneto_avg[0])
@@ -161,35 +214,15 @@ def on_message(client, userdata, msg):
             test_data.write(data_to_store + '\n')
         test_data.close()
 
+        print(count)
         print(strip_id, j_msg['node_id'], "rssi avg: ", rssi_avg,"avg magneto: ", magneto_avg)
+
+        rssi.clear()
+        magnetometer.clear()
         # #if rssi_avg < 0 & magneto_avg[0] > 0 & magneto_avg[1] > 0
         # static: rssi > -50; magneto =~ 60; surrounding: rssi =~ 56, magneto
         #if (rssi_avg > -80 and rssi_avg < -10 and magneto_avg[0] > 0 and magneto_avg[0] < 270) or (rssi_avg > -50 and rssi_avg < -5 and magneto_avg[0] > -80 and magneto_avg[0] < 0 ):
-        #if False:
-        #if magneto_avg[0] > 20:
-        if strip_id > 3 and strip_id < 11 and rssi_avg > -67 and rssi_avg < -20 and magneto_avg[0] > -3 and magneto_avg[0] < 260:
-            #print("Filtered: ", strip_id, j_msg['node_id'], rssi_avg, magneto_avg)
-            # with open("datalog.txt", "a") as test_data:
-            #     # test_data.write(json.dumps(data) + '\n')
-            #     test_data.write("Filtered: " + data_to_store + '\n')
-            # test_data.close()
-            # print(strip_id, j_msg['node_id'], magneto_avg, magnetometer)
-            df2 = Vicon_Coords.loc[(Vicon_Coords['strip_id'] == strip_id) & (Vicon_Coords['node_id'] == float(j_msg['node_id']))]
-            x_coord = df2['vicon_x'].values[0].round(3)
-            y_coord = df2['vicon_y'].values[0].round(3)
-
-            print(x_coord, y_coord)
-
-            # #construct topic for publishing
-            mqtt_publish_topic = 'imu_reader/viconpos'
-            publish_start_time = time()
-            msg_to_laser = {"subject": "MR-1", "duration": 10, "color": "red", "shape": "circle", "pointCount": 16, "animation": "pulse", "visible": "true",
-                            "xpos" : x_coord, "ypos" : y_coord, "vicon_tracker" : "false"}
-                            # "target" : {x_coord, y_coord, 0.0}}
-            ret = client.publish(mqtt_publish_topic, json.dumps(msg_to_laser))
-            print(msg_to_laser)
-        rssi.clear()
-        magnetometer.clear()
+        #otsu library for thresholding
 
 #fab imuread must run in parallel to trigger the broker
 #Set paho mqtt callback
@@ -201,20 +234,9 @@ client.on_connect = on_connect
 client.on_message = on_message
 client.enable_bridge_mode()
 #client.loop_forever()
-#client.loop_start()
-#client.loop_forever()
 
-# while True:
-#     client.loop_forever()
-#     if cond == False:
-#         client.loop_stop()
-#         break
 try:
-    while True:
-        client.loop_forever()
-        if cond == False:
-            client.loop_stop()
-            break
+    client.loop_forever()
 except:
   print('disconnect')
   client.disconnect()
