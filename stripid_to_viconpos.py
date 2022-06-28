@@ -121,6 +121,7 @@ def on_message(client, userdata, msg):
         #print(j_msg)
         #strip_id = convert_strip_id(j_msg['strip_id'])
         #print(strip_id, j_msg['node_id'], j_msg['data'])
+
         for i in range(len(data)):
             rssi.append(data[i]['r'])
             #print((data[i]['r']))
@@ -132,7 +133,7 @@ def on_message(client, userdata, msg):
 
         #to plot the heatmap //uncomment this section
         count += 1
-        if count == 345 and count_plt < 6:
+        if count == 345 and count_plt < 10:
             count_plt += 1
             #print(count)
             count = 0
@@ -146,7 +147,7 @@ def on_message(client, userdata, msg):
             plt.ylabel("Strip ID")
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
             plt.tight_layout()
-            plt.savefig('1506_RSSI_Static_5_Sensor_UHR' + str(count_plt) + '.png')
+            plt.savefig('2106_RSSI_Static_5_Sensor_UHR' + str(count_plt) + '.png')
             #plt.show()
 
             plt.figure(figsize=(15, 9))
@@ -157,7 +158,7 @@ def on_message(client, userdata, msg):
             plt.ylabel("Strip ID")
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
             plt.tight_layout()
-            plt.savefig('1506_Mag_Static_5_Sensor_UHR' + str(count_plt) + '.png')
+            plt.savefig('2106_Mag_Static_5_Sensor_UHR' + str(count_plt) + '.png')
             #plt.show()
 
 
@@ -165,22 +166,20 @@ def on_message(client, userdata, msg):
             rssi_mat[int(strip_id)-1][int(j_msg['node_id'])-1] = rssi_avg[0]
             data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
             print(strip_id, j_msg['node_id'])
+
+            #
             if strip_id > 1 and strip_id < 14 and int(j_msg['node_id']) > 0 and int(j_msg['node_id']) < 14:
-                print(rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1])
-                print(rssi_mat[int(strip_id)][int(j_msg['node_id'])])
-                print(rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1])
+                # print(rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1])
+                # print(rssi_mat[int(strip_id)][int(j_msg['node_id'])])
+                # print(rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1])
                 if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
                 rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
                 rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
                 rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20 and
                 rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20):
                 #rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20):
-                    #and
-                        # rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][
-                        #     int(j_msg['node_id']) + 1] < -20 and
-                        # rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id + 1)][
-                        #     int(j_msg['node_id']) + 1] < -20):
-                    print("True 2")
+                    #and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20 and
+                    # rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id + 1)][int(j_msg['node_id']) + 1] < -20):
                     # if strip_id > 3 and strip_id < 11 and rssi_avg > -69 and rssi_avg < -20 and magneto_avg[0] > -3 and magneto_avg[0] < 370:
 
                     # print("Filtered: ", strip_id, j_msg['node_id'], rssi_avg, magneto_avg)
@@ -202,7 +201,6 @@ def on_message(client, userdata, msg):
                     msg_to_laser = {"subject": "MR-1", "duration": 10, "color": "red", "shape": "circle",
                                     "pointCount": 16, "animation": "pulse", "visible": "true",
                                     "xpos": x_coord, "ypos": y_coord, "vicon_tracker": "false"}
-                    # "target" : {x_coord, y_coord, 0.0}}
                     ret = client.publish(mqtt_publish_topic, json.dumps(msg_to_laser))
                     print(msg_to_laser)
 
