@@ -17,8 +17,11 @@ count = 0
 count_plt = 0
 cond = True
 
-rssi_mat = np.zeros((23,15))
-data_mag = np.zeros((23,15))
+# rssi_mat = np.zeros((23,15))
+# data_mag = np.zeros((23,15))
+
+rssi_mat = np.zeros((15,23))
+data_mag = np.zeros((15,23))
 data_mat = []
 
 RPi_IPs = [
@@ -167,99 +170,147 @@ def on_message(client, userdata, msg):
             print(rssi_mat)
             print(data_mag)
             plt.figure(figsize=(15, 9))
-            sns.heatmap(rssi_mat, annot=True, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
-            plt.title("RSSI Heatmap")
-            plt.xlabel("Node ID")
-            plt.ylabel("Strip ID")
+            #sns.set(font_scale=1.4)
+            ax = sns.heatmap(rssi_mat, annot=True, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
+            ax.figure.axes[-1].yaxis.label.set_size(16)
+            #sns.set(font_scale=1.4)
+            plt.title("RSSI Heatmap", fontsize = 16)
+            plt.ylabel("Node ID", fontsize = 16)
+            plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
             plt.tight_layout()
-            plt.savefig('2106_RSSI_Static_5_Sensor_UHR' + str(count_plt) + '.png')
+            plt.savefig('1507_RSSI_Static_test' + str(count_plt) + '.png')
             #plt.show()
 
             plt.figure(figsize=(15, 9))
-            sns.heatmap(data_mag, annot=True, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
+            bx = sns.heatmap(data_mag, annot=True, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
+            bx.figure.axes[-1].yaxis.label.set_size(16)
+            #sns.set(font_scale=1.4)
             #sns.set(rc={"figure.figsize": (15, 9)})
-            plt.title("Magnetometer Heatmap")
-            plt.xlabel("Node ID")
-            plt.ylabel("Strip ID")
+            plt.title("Magnetometer Heatmap", fontsize = 16)
+            plt.ylabel("Node ID", fontsize = 16)
+            plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
             plt.tight_layout()
-            plt.savefig('2106_Mag_Static_5_Sensor_UHR' + str(count_plt) + '.png')
+            plt.savefig('1507_Mag_Static_test' + str(count_plt) + '.png')
             #plt.show()
 
         else:
 
             #store the rssi and magnetometer values to corresponding array index of strip and node ids
-            rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] = rssi_avg[0]
-            data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
+            # rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] = rssi_avg[0]
+            # data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
+
+            rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] = rssi_avg[0]
+            data_mag[int(j_msg['node_id']) - 1][int(strip_id) - 1]  = magneto_avg[0]
+
 
             # conditions to determine the highest densed RSSI values in certain location
             if strip_id > 0 and strip_id < 22 and int(j_msg['node_id']) > 0 and int(j_msg['node_id']) < 14:
 
-                if (rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                    rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20 and
-                    rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20):
+                # if (rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
+                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20 and
+                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20):
+
+                if (rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
+                    #rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] < -20 and
+                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) - 1] < -20):
 
                         store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
 
             elif strip_id == 0 and int(j_msg['node_id']) > 0 and int(j_msg['node_id']) < 14:
 
-                if (rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                    rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20 and
-                    rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20):
+                # if (rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
+                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20 and
+                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20):
+
+                if (rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] < -20 and
+                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] < -20 and
+                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] < -20):
 
                         store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
 
-
             elif strip_id == 22 and int(j_msg['node_id']) > 0 and int(j_msg['node_id']) < 14:
 
-                if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20 and
-                    rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20):
+                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20 and
+                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20):
+
+                if (rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] < -20 and
+                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] < -20):
 
                         store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
 
             elif strip_id == 0 and int(j_msg['node_id']) == 0:
 
-                if (rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] < -20):
+                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] < -20):
+
+                if (rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] < -20 and
+                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) + 1] < -20):
 
                         store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
 
             elif strip_id == 0 and int(j_msg['node_id']) == 14:
 
-                if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20):
+                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20):
+
+                if (rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] < -20 and
+                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] < -20):
 
                         store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
 
             elif strip_id == 22 and int(j_msg['node_id']) == 0:
 
-                if (rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20):
+                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20):
+
+                if (rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] < -20 and
+                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) - 1] < -20):
 
                         store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
 
             elif strip_id == 22 and int(j_msg['node_id']) == 14:
 
-                if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                    rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
-                    rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20):
+                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
+                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
+                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20):
+
+                if (rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
+                    rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] < -20 and
+                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] < -20):
 
                         store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
 
