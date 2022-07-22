@@ -58,51 +58,51 @@ print(Vicon_Coords)
 
 def convert_strip_id(mac_id):
     if mac_id == 'b8:27:eb:41:99:a0':
-        return 1.0
-    if mac_id == 'b8:27:eb:c0:fd:6a':
-        return 2.0
-    if mac_id == 'b8:27:eb:18:92:c7':
-        return 3.0
-    if mac_id == 'b8:27:eb:53:f2:33':
-        return 4.0
-    if mac_id == 'b8:27:eb:e7:6f:dc':
-        return 5.0
-    if mac_id == 'b8:27:eb:38:4b:07':
-        return 6.0
-    if mac_id == 'b8:27:eb:1b:cf:26':
-        return 7.0
-    if mac_id == 'b8:27:eb:6d:0e:53':
-        return 8.0
-    if mac_id == 'b8:27:eb:b7:a3:b7':
-        return 9.0
-    if mac_id == 'b8:27:eb:be:dc:32':
-        return 10.0
+        return 1
+    elif mac_id == 'b8:27:eb:c0:fd:6a':
+        return 2
+    elif mac_id == 'b8:27:eb:18:92:c7':
+        return 3
+    elif mac_id == 'b8:27:eb:53:f2:33':
+        return 4
+    elif mac_id == 'b8:27:eb:e7:6f:dc':
+        return 5
+    elif mac_id == 'b8:27:eb:38:4b:07':
+        return 6
+    elif mac_id == 'b8:27:eb:1b:cf:26':
+        return 7
+    elif mac_id == 'b8:27:eb:6d:0e:53':
+        return 8
+    elif mac_id == 'b8:27:eb:b7:a3:b7':
+        return 9
+    elif mac_id == 'b8:27:eb:be:dc:32':
+        return 10
     elif mac_id == 'b8:27:eb:ff:a4:48':
-        return 11.0
+        return 11
     elif mac_id == 'b8:27:eb:a9:7d:4d':
-        return 12.0
+        return 12
     elif mac_id == 'b8:27:eb:c4:f8:c7':
-        return 13.0
+        return 13
     elif mac_id == 'b8:27:eb:e4:43:6d':
-        return 14.0
+        return 14
     elif mac_id == 'b8:27:eb:98:69:6e':
-        return 15.0
+        return 15
     elif mac_id == 'b8:27:eb:75:c7:a2':
-        return 16.0
+        return 16
     elif mac_id == 'b8:27:eb:09:3d:77':
-        return 17.0
+        return 17
     elif mac_id == 'b8:27:eb:05:d8:4d':
-        return 18.0
+        return 18
     elif mac_id == 'b8:27:eb:36:da:22':
-        return 19.0
+        return 19
     elif mac_id == 'b8:27:eb:f5:5d:04':
-        return 20.0
+        return 20
     elif mac_id == 'b8:27:eb:88:8d:56':
-        return 21.0
+        return 21
     elif mac_id == 'b8:27:eb:00:be:93':
-        return 22.0
+        return 22
     elif mac_id == 'b8:27:eb:c0:10:ae':
-        return 23.0
+        return 23
 
 # This is the Subscriber
 
@@ -162,7 +162,7 @@ def on_message(client, userdata, msg):
 
         #to plot the heatmap //uncomment this section
         count += 1
-        if count == 345 and count_plt < 10:
+        if count == 346 and count_plt < 10:
             count_plt += 1
             #print(count)
             count = 0
@@ -179,7 +179,7 @@ def on_message(client, userdata, msg):
             plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
             plt.tight_layout()
-            plt.savefig('1507_RSSI_Static_test' + str(count_plt) + '.png')
+            plt.savefig('1907_RSSI_Static_test' + str(count_plt) + '.png')
             #plt.show()
 
             plt.figure(figsize=(15, 9))
@@ -192,7 +192,7 @@ def on_message(client, userdata, msg):
             plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
             plt.tight_layout()
-            plt.savefig('1507_Mag_Static_test' + str(count_plt) + '.png')
+            plt.savefig('1907_Mag_Static_test' + str(count_plt) + '.png')
             #plt.show()
 
         else:

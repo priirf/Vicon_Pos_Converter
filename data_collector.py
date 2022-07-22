@@ -9,12 +9,13 @@ import matplotlib.pylab as plt
 
 broker_address = "129.217.152.1"
 data = []
-# rssi = []
-# rssi_avg = 0
-# magnetometer = []
-# magneto_avg = 0
-# count = 0
-# count_plt = 0
+
+count = 0
+ID = 1
+
+rssi_mat = np.zeros((15,23))
+data_mag = np.zeros((15,23))
+data_mat = []
 
 RPi_IPs = [
             {"column_num": 1, "ip_addr": "129.217.152.74", "mac_id": "b8:27:eb:41:99:a0", "hostname": "raspberrypi"},
@@ -100,7 +101,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     if msg.payload.decode():
-        global count, count_plt
+        global count, ID
         j_msg = json.loads(msg.payload.decode('utf-8'))
         data = j_msg['data']
 
@@ -113,8 +114,6 @@ def on_message(client, userdata, msg):
         for i in range(len(data)):
             del (data[i]['a'])
             del (data[i]['g'])
-        #     rssi.append(data[i]['r'])
-        #     magnetometer.append(data[i]['m'])
 
         # #construct new json message to be stored later
         # del (j_msg['data'])
@@ -122,6 +121,18 @@ def on_message(client, userdata, msg):
         # magneto_avg = np.mean(magnetometer, axis=0)
         # avg_results = [{'r': str(rssi_avg), 'm': str(magneto_avg)}]
         # j_msg['data'] = avg_results
+
+        # to plot the heatmap //uncomment this section
+        count += 1
+        if count == 346:
+            #print(count)
+            count = 0
+            ID += 1
+            print("--------------------------------------------------------")
+
+
+        #attach the ID for each batch (345 nodes) of measurement
+        j_msg['ID'] = ID
         print("json msg: ", j_msg)
 
         with open("sensor_floor_data.txt", "a+") as test_data:
@@ -136,10 +147,10 @@ print("connecting to broker")
 
 client.on_connect = on_connect
 client.on_message = on_message
-client.loop_forever()
+#client.loop_forever()
 
-# try:
-#     client.loop_forever()
-# except:
-#   print('disconnect')
-#   client.disconnect()
+try:
+    client.loop_forever()
+except:
+  print('disconnect')
+  client.disconnect()
