@@ -135,7 +135,7 @@ def on_message(client, userdata, msg):
         j_msg['ID'] = ID
         print("json msg: ", j_msg)
 
-        with open("sensor_floor_data.txt", "a+") as test_data:
+        with open("sensor_floor_data_03082022_moving_around.txt", "a+") as test_data:
             test_data.write(json.dumps(j_msg) + '\n')
         test_data.close()
 

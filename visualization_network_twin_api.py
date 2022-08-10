@@ -162,7 +162,7 @@ def on_message(client, userdata, msg):
 
         #to plot the heatmap //uncomment this section
         count += 1
-        if count == 346 and count_plt < 10:
+        if count == 346 and count_plt < 16:
             count_plt += 1
             #print(count)
             count = 0
@@ -179,7 +179,7 @@ def on_message(client, userdata, msg):
             plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
             plt.tight_layout()
-            plt.savefig('1907_RSSI_Static_test' + str(count_plt) + '.png')
+            plt.savefig('0308_RSSI_Static_test' + str(count_plt) + '.png')
             #plt.show()
 
             plt.figure(figsize=(15, 9))
@@ -192,7 +192,7 @@ def on_message(client, userdata, msg):
             plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
             plt.tight_layout()
-            plt.savefig('1907_Mag_Static_test' + str(count_plt) + '.png')
+            plt.savefig('0308_Mag_Static_test' + str(count_plt) + '.png')
             #plt.show()
 
         else:
