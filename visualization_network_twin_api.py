@@ -156,8 +156,8 @@ def on_message(client, userdata, msg):
             #print((data[i]['r']))
             magnetometer.append(data[i]['m'])
 
-        rssi_avg = np.mean(rssi, axis=0)
-        magneto_avg = np.mean(magnetometer, axis=0)
+        rssi_avg = np.round(np.mean(rssi, axis=0),2)
+        magneto_avg = np.round(np.mean(magnetometer, axis=0),2)
         strip_id = convert_strip_id(j_msg['strip_id'])
 
         #to plot the heatmap //uncomment this section
