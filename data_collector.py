@@ -111,9 +111,9 @@ def on_message(client, userdata, msg):
         j_msg['strip_id'] = str(j_msg['strip_id'])
 
         #remove acceloremeter and gyroscope data
-        for i in range(len(data)):
-            del (data[i]['a'])
-            del (data[i]['g'])
+        # for i in range(len(data)):
+        #     del (data[i]['a'])
+        #     del (data[i]['g'])
 
         # #construct new json message to be stored later
         # del (j_msg['data'])
@@ -123,19 +123,19 @@ def on_message(client, userdata, msg):
         # j_msg['data'] = avg_results
 
         # to plot the heatmap //uncomment this section
-        count += 1
-        if count == 346:
-            #print(count)
-            count = 0
-            ID += 1
-            print("--------------------------------------------------------")
+        # count += 1
+        # if count == 346:
+        #     #print(count)
+        #     count = 0
+        #     ID += 1
+        #     print("--------------------------------------------------------")
 
 
         #attach the ID for each batch (345 nodes) of measurement
-        j_msg['ID'] = ID
+        #j_msg['ID'] = ID
         print("json msg: ", j_msg)
 
-        with open("sensor_floor_data_17082022_moving_around_5.txt", "a+") as test_data:
+        with open("sensor_floor_data_16092022_run_vertical_3.txt", "a+") as test_data:
             test_data.write(json.dumps(j_msg) + '\n')
         test_data.close()
 

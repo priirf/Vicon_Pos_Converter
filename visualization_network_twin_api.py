@@ -5,23 +5,46 @@ import pandas as pd
 from time import sleep, time
 import seaborn as sns
 import matplotlib.pylab as plt
+from modules_lib.model import ModelWrapper
 
 
 broker_address = "129.217.152.1"
 data = []
-rssi = []
-rssi_avg = 0
+accelerometer = []
+gyroscope = []
 magnetometer = []
+rssi = []
+
+timestamp = np.zeros((1,1))
+
+rssi_avg = 0
 magneto_avg = 0
+accelero_avg = 0
+gyro_avg = 0
+
 count = 0
 count_plt = 0
 cond = True
 
-# rssi_mat = np.zeros((23,15))
-# data_mag = np.zeros((23,15))
+model_file_i = 'data/models/model_coords_0000'
+model_wrapper = ModelWrapper(model_file_i)
+predict = False
 
-rssi_mat = np.zeros((15,23))
-data_mag = np.zeros((15,23))
+KEYS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'r']
+
+rssi_mat = np.zeros((23,15))
+data_mag = np.zeros((23,15))
+
+timestamps_array = []
+
+X_data = np.zeros([23, 15, 10])
+#rssi_data = np.zeros([1, 23, 15, 10])
+t_i_array = np.zeros((23,15))
+t_data = np.zeros((345, 1))
+t_batch_i_old_arr = np.zeros((23,15))
+
+# rssi_mat = np.zeros((15,23))
+# data_mag = np.zeros((15,23))
 data_mat = []
 
 RPi_IPs = [
@@ -104,8 +127,190 @@ def convert_strip_id(mac_id):
     elif mac_id == 'b8:27:eb:c0:10:ae':
         return 23
 
-# This is the Subscriber
+#Convert unix timestamps to Julian date format
+# def Convert_to_julian_date(t_df):
+    
+#     time_i = []
+#     offset = 2459828.75 #2459794.5 Julian epoch for 03.08.2022//Julian epoch for 5th August 2020: 2459067.00
+#     time_stamps = pd.DatetimeIndex(t_df['timestamp']).to_julian_date()
+ 
+#     for time_stamp in time_stamps:
+#         # time_stamp = ((time_stamp / 86400.0) + 2440587.5)
+#         time_i.append(time_stamp - offset)
 
+#     time_i_avg = np.mean([a for j,a in enumerate(time_i) if a>=0])
+#     t = time_i_avg * 24 * 60 * 60
+
+#     return t
+
+# def decode_data(j_msg, strip_id, node_id):
+    
+    global t_batch_i_old_arr, cnt
+    
+    delta_t = 0
+    timestamp_i = 0
+    data = j_msg['data']
+
+    #check timestamp
+    if t_batch_i_old_arr[strip_id-1][node_id-1] < j_msg['timestamp'] and t_batch_i_old_arr[strip_id-1][node_id-1] > 0:
+    
+        delta_t = (j_msg['timestamp'] - t_batch_i_old_arr[strip_id-1][node_id-1])/len(data)
+        
+        #print('1st: ', j_msg['timestamp'])
+        #print('iter > 0: ', delta_t)
+        t_i_batch_old = t_batch_i_old_arr[strip_id-1][node_id-1]
+        t_batch_i_old_arr[strip_id-1][node_id-1] = j_msg['timestamp']
+        print('iter > 0: ', t_i_batch_old)
+        #print('2nd: ', t_batch_i_old_arr[strip_id-1][node_id-1])
+        #cnt += 1
+        #print('count: ', cnt)
+        for i in range(len(data)):
+            t_i = t_i_batch_old + ((1+i)*delta_t)
+            t_i_array[strip_id-1][node_id-1] = t_i
+
+            #print('iter > 0: ', t_i, t_i_array[strip_id-1][node_id-1], len(t_i_array))
+
+            frame = ({'timestamp':t_i,'strip_id':strip_id,'node_id':node_id,
+                'ax':data[i]['a'][0],'ay':data[i]['a'][1],'az':data[i]['a'][2],
+                'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
+                'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
+                'r':data[i]['r'][0]})
+            for i, key in enumerate(KEYS):
+                X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
+        
+    
+            t_out = t_i_array.flatten()
+            t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
+            t_out_df['timestamp'] = pd.to_datetime(t_out_df['timestamp'],unit='s')
+
+            return t_out_df, X_data
+
+#Convert unix timestamps to Julian date format
+def Convert_to_julian_date(t_df):
+    
+    time_i = []
+    offset = 2459828.75 #2459794.5 Julian epoch for 03.08.2022//Julian epoch for 5th August 2020: 2459067.00
+    time_stamps = pd.DatetimeIndex(t_df['timestamp']).to_julian_date()
+ 
+    for time_stamp in time_stamps:
+        # time_stamp = ((time_stamp / 86400.0) + 2440587.5)
+        time_i.append(time_stamp - offset)
+
+    time_i_avg = np.mean([a for j,a in enumerate(time_i) if a>=0])
+    t = time_i_avg * 24 * 60 * 60
+
+    return t
+
+def decode_data(j_msg, strip_id, node_id):
+    
+    global t_batch_i_old_arr
+    
+    delta_t = 0
+    timestamp_i = 0
+    data = j_msg['data']
+
+    #check timestamp
+    if t_batch_i_old_arr[strip_id-1][node_id-1] < j_msg['timestamp'] and t_batch_i_old_arr[strip_id-1][node_id-1] > 0:
+    
+        delta_t = (j_msg['timestamp'] - t_batch_i_old_arr[strip_id-1][node_id-1])/len(data)
+        
+        #print('1st: ', j_msg['timestamp'])
+        #print('iter > 0: ', delta_t)
+        t_i_batch_old = t_batch_i_old_arr[strip_id-1][node_id-1]
+        t_batch_i_old_arr[strip_id-1][node_id-1] = j_msg['timestamp']
+        #print('iter > 0: ', t_i_batch_old)
+        #print('2nd: ', t_batch_i_old_arr[strip_id-1][node_id-1])
+        #cnt += 1
+        #print('count: ', cnt)
+        for i in range(len(data)):
+            t_i = t_i_batch_old + ((1+i)*delta_t)
+            t_i_array[strip_id-1][node_id-1] = t_i
+
+            #print('iter > 0: ', t_i, t_i_array[strip_id-1][node_id-1], len(t_i_array))
+            if data[i]['r'][0] < 0:
+
+                frame = ({'timestamp':t_i,'strip_id':strip_id,'node_id':node_id,
+                    'ax':data[i]['a'][0],'ay':data[i]['a'][1],'az':data[i]['a'][2],
+                    'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
+                    'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
+                    'r':data[i]['r'][0]})
+                for i, key in enumerate(KEYS):
+                    X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
+                
+                t_out = t_i_array.flatten()
+                t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
+                t_out_df['timestamp'] = pd.to_datetime(t_out_df['timestamp'],unit='s')
+
+                #print("RSSI normal")
+
+                return t_out_df, X_data
+            else:
+                frame = ({'timestamp':t_i,'strip_id':strip_id,'node_id':node_id,
+                    'ax':data[i]['a'][0],'ay':data[i]['a'][1],'az':data[i]['a'][2],
+                    'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
+                    'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
+                    'r':np.nan})
+                for i, key in enumerate(KEYS):
+                    X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
+            
+                
+                t_out = t_i_array.flatten()
+                t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
+                t_out_df['timestamp'] = pd.to_datetime(t_out_df['timestamp'],unit='s')
+
+                #print("RSSI is zero")
+
+                return t_out_df, X_data              
+
+        
+    elif t_batch_i_old_arr[strip_id-1][node_id-1] == 0:
+        #print('1st: ', j_msg['timestamp'])
+        delta_t = 4/19
+        
+        t_i_batch_old = j_msg['timestamp'] - 4
+        t_batch_i_old_arr[strip_id-1][node_id-1] = j_msg['timestamp']
+        #print('2nd: ', t_i_batch_old, t_batch_i_old_arr[strip_id-1][node_id-1])
+        #print('iter 0: ', strip_id, node_id, t_i_batch_old, t_batch_i_old_arr[strip_id-1][node_id-1] )
+
+        for i in range(len(data)):
+            t_i = t_i_batch_old + ((1+i)*delta_t)
+            t_i_array[strip_id-1][node_id-1] = t_i
+            
+            if data[i]['r'][0] < 0:
+
+                frame = ({'timestamp':t_i,'strip_id':strip_id,'node_id':node_id,
+                    'ax':data[i]['a'][0],'ay':data[i]['a'][1],'az':data[i]['a'][2],
+                    'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
+                    'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
+                    'r':data[i]['r'][0]})
+                for i, key in enumerate(KEYS):
+                    X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
+            
+                
+                t_out = t_i_array.flatten()
+                t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
+                t_out_df['timestamp'] = pd.to_datetime(t_out_df['timestamp'],unit='s')
+
+                #print("0, RSSI normal")
+
+                return t_out_df, X_data
+            else:
+                frame = ({'timestamp':t_i,'strip_id':strip_id,'node_id':node_id,
+                    'ax':data[i]['a'][0],'ay':data[i]['a'][1],'az':data[i]['a'][2],
+                    'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
+                    'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
+                    'r':np.nan})
+                for i, key in enumerate(KEYS):
+                    X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
+            
+                
+                t_out = t_i_array.flatten()
+                t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
+                t_out_df['timestamp'] = pd.to_datetime(t_out_df['timestamp'],unit='s')
+
+                #print("0, RSSI is zero")
+                return t_out_df, X_data  
+# This is the Subscriber
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
     for RPi in RPi_IPs:
@@ -142,192 +347,85 @@ def store_and_publish_msg(strip_id, node_id, rssi, magnetometer):
 
 def on_message(client, userdata, msg):
     if msg.payload.decode():
-        global count, count_plt
+        global count, count_plt, rssi_mat, data_mag
         j_msg = json.loads(msg.payload.decode('utf-8'))
         data = j_msg['data']
 
-        #print(type(j_msg['data']))
-        #print(j_msg)
-        #strip_id = convert_strip_id(j_msg['strip_id'])
-        #print(strip_id, j_msg['node_id'], j_msg['data'])
+        # for i in range(len(data)):
+        #     rssi.append(data[i]['r'])
+        #     #print((data[i]['r']))
+        #     magnetometer.append(data[i]['m'])
 
-        for i in range(len(data)):
-            rssi.append(data[i]['r'])
-            #print((data[i]['r']))
-            magnetometer.append(data[i]['m'])
-
-        rssi_avg = np.round(np.mean(rssi, axis=0),2)
-        magneto_avg = np.round(np.mean(magnetometer, axis=0),2)
+        # rssi_avg = np.round(np.mean(rssi, axis=0),2)
+        # magneto_avg = np.round(np.mean(magnetometer, axis=0),2)
         strip_id = convert_strip_id(j_msg['strip_id'])
+        node_id = int(j_msg['node_id'])
 
         #to plot the heatmap //uncomment this section
         count += 1
-        if count == 346 and count_plt < 16:
+        if count == 346:
             count_plt += 1
-            #print(count)
+            print(count)
             count = 0
             print("--------------------------------------------------------")
+            #t_df, sensor_data = decode_data(j_msg, strip_id, node_id)
+            #sensor_data = np.transpose(sensor_data, [0,2,1,3])
+            
+
             print(rssi_mat)
             print(data_mag)
-            plt.figure(figsize=(15, 9))
-            #sns.set(font_scale=1.4)
-            ax = sns.heatmap(rssi_mat, annot=True, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
-            ax.figure.axes[-1].yaxis.label.set_size(16)
-            #sns.set(font_scale=1.4)
+            #rssi_mat_transpose = np.transpose(rssi_mat)
+            fig = plt.figure(figsize=(12, 14))
+          
+            ax1 = fig.add_subplot(211)
+            #ax1 = plt.subplots(figsize=(10,7))
+            ax1 = sns.heatmap(rssi_mat, annot=False, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
+            ax1.figure.axes[-1].yaxis.label.set_size(14)
+       
             plt.title("RSSI Heatmap", fontsize = 16)
             plt.ylabel("Node ID", fontsize = 16)
             plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
-            plt.tight_layout()
-            plt.savefig('0308_RSSI_Static_test' + str(count_plt) + '.png')
+            #plt.tight_layout()
+            #plt.savefig('0209_RSSI_Static_test2' + str(count_plt) + '.png')
             #plt.show()
 
-            plt.figure(figsize=(15, 9))
-            bx = sns.heatmap(data_mag, annot=True, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
-            bx.figure.axes[-1].yaxis.label.set_size(16)
-            #sns.set(font_scale=1.4)
-            #sns.set(rc={"figure.figsize": (15, 9)})
+            #data_mag_transpose = np.transpose(data_mag)
+            ax2 = fig.add_subplot(212)
+            ax2 = sns.heatmap(data_mag, annot=False, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
+            ax2.figure.axes[-1].yaxis.label.set_size(14)
+    
             plt.title("Magnetometer Heatmap", fontsize = 16)
             plt.ylabel("Node ID", fontsize = 16)
             plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
-            plt.tight_layout()
-            plt.savefig('0308_Mag_Static_test' + str(count_plt) + '.png')
-            #plt.show()
+            #plt.tight_layout()
+            #plt.savefig('0209_Mag_Static_test2' + str(count_plt) + '.png')
+            plt.subplots_adjust(left=0.1, bottom=0.2, right=0.88, top=0.9, hspace=0.3)
+            plt.show()
 
         else:
+            t_df, sensor_data = decode_data(j_msg, strip_id, node_id)
+            sensor_data_trans = np.transpose(sensor_data, [1,0,2])
+            
+            rssi_mat = sensor_data_trans[:,:,9]
+            data_mag = sensor_data_trans[:,:,6]
 
-            #store the rssi and magnetometer values to corresponding array index of strip and node ids
-            # rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] = rssi_avg[0]
-            # data_mag[int(strip_id) - 1][int(j_msg['node_id']) - 1] = magneto_avg[0]
+            # if count_plt > 1 and predict:
+            #     t_input = Convert_to_julian_date(t_df)   
+            #     X_input_predict = sensor_data.reshape([1, 23, 15, 10])
+            #     t_input_predict = t_input.reshape([1,1])
+            #     print('in loop: ',t_df, 'test X: ', X_input_predict.shape, t_input_predict.shape)
+            #     coord_predict = model_wrapper.predict(X_input_predict, t_input_predict)
+            #     print("vicon predict: ", coord_predict[0][0], ",", coord_predict[0][1])
 
-            rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] = rssi_avg[0]
-            data_mag[int(j_msg['node_id']) - 1][int(strip_id) - 1]  = magneto_avg[0]
-
-
-            # conditions to determine the highest densed RSSI values in certain location
-            if strip_id > 0 and strip_id < 22 and int(j_msg['node_id']) > 0 and int(j_msg['node_id']) < 14:
-
-                # if (rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20 and
-                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20):
-
-                if (rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
-                    #rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] < -20 and
-                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) - 1] < -20):
-
-                        store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
-
-            elif strip_id == 0 and int(j_msg['node_id']) > 0 and int(j_msg['node_id']) < 14:
-
-                # if (rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20 and
-                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20):
-
-                if (rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] < -20 and
-                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] < -20 and
-                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] < -20):
-
-                        store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
-
-            elif strip_id == 22 and int(j_msg['node_id']) > 0 and int(j_msg['node_id']) < 14:
-
-                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20 and
-                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20):
-
-                if (rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] < -20 and
-                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] < -20):
-
-                        store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
-
-            elif strip_id == 0 and int(j_msg['node_id']) == 0:
-
-                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) + 1] < -20):
-
-                if (rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] < -20 and
-                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) + 1] < -20):
-
-                        store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
-
-            elif strip_id == 0 and int(j_msg['node_id']) == 14:
-
-                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) + 1][int(j_msg['node_id']) - 1] < -20):
-
-                if (rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) + 1] < -20 and
-                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) + 1] < -20):
-
-                        store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
-
-            elif strip_id == 22 and int(j_msg['node_id']) == 0:
-
-                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) + 1] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) + 1] < -20):
-
-                if (rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] < -20 and
-                    rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) + 1][int(strip_id) - 1] < -20):
-
-                        store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
-
-            elif strip_id == 22 and int(j_msg['node_id']) == 14:
-
-                # if (rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id']) - 1] < -20 and
-                #     rssi_mat[int(strip_id)][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id)][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id'])] < -20 and
-                #     rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] > -70 and rssi_mat[int(strip_id) - 1][int(j_msg['node_id']) - 1] < -20):
-
-                if (rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id)] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id)] < -20 and
-                    rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id'])][int(strip_id) - 1] < -20 and
-                    rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] > -70 and rssi_mat[int(j_msg['node_id']) - 1][int(strip_id) - 1] < -20):
-
-                        store_and_publish_msg(strip_id, j_msg['node_id'], rssi_avg[0], magneto_avg[0])
-
-        timestamp = time()
-        data_to_store = str(timestamp) + ", " + str(strip_id) + ", " + str(j_msg['node_id']) + ", " + str(rssi_avg[0]) + ", " + str(magneto_avg[0])
-
-        with open("datalog.txt", "a") as test_data:
-            test_data.write(data_to_store + '\n')
-        test_data.close()
-
-        #print(count)
-        print(strip_id, j_msg['node_id'], "rssi avg: ", rssi_avg,"avg magneto: ", magneto_avg)
-
-        rssi.clear()
-        magnetometer.clear()
-
-        #otsu library for thresholding
+            #     vicon_predict = str(coord_predict[0][0]) + ", " + str(coord_predict[0][1])
+            #     with open("test_prediction_1609_6_tx_bottom_mid.txt", "a") as test_data:
+            #         test_data.write(vicon_predict + '\n')
+            #     test_data.close()
+        
+        #print(data)
+ 
 
 #fab imuread must run in parallel to trigger the broker
 #Set paho mqtt callback

@@ -1,0 +1,55 @@
+Model: "sequential_2"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d_18 (Conv2D)          (None, 23, 15, 64)        3520      
+                                                                 
+ conv2d_19 (Conv2D)          (None, 23, 15, 64)        36928     
+                                                                 
+ conv2d_20 (Conv2D)          (None, 23, 15, 64)        36928     
+                                                                 
+ dropout_10 (Dropout)        (None, 23, 15, 64)        0         
+                                                                 
+ average_pooling2d_6 (Averag  (None, 11, 7, 64)        0         
+ ePooling2D)                                                     
+                                                                 
+ conv2d_21 (Conv2D)          (None, 11, 7, 64)         36928     
+                                                                 
+ conv2d_22 (Conv2D)          (None, 11, 7, 64)         36928     
+                                                                 
+ dropout_11 (Dropout)        (None, 11, 7, 64)         0         
+                                                                 
+ conv2d_23 (Conv2D)          (None, 11, 7, 64)         36928     
+                                                                 
+ average_pooling2d_7 (Averag  (None, 5, 3, 64)         0         
+ ePooling2D)                                                     
+                                                                 
+ conv2d_24 (Conv2D)          (None, 5, 3, 64)          36928     
+                                                                 
+ dropout_12 (Dropout)        (None, 5, 3, 64)          0         
+                                                                 
+ conv2d_25 (Conv2D)          (None, 5, 3, 64)          36928     
+                                                                 
+ conv2d_26 (Conv2D)          (None, 5, 3, 64)          36928     
+                                                                 
+ average_pooling2d_8 (Averag  (None, 2, 1, 64)         0         
+ ePooling2D)                                                     
+                                                                 
+ flatten_2 (Flatten)         (None, 128)               0         
+                                                                 
+ dropout_13 (Dropout)        (None, 128)               0         
+                                                                 
+ dense_6 (Dense)             (None, 128)               16512     
+                                                                 
+ dense_7 (Dense)             (None, 128)               16512     
+                                                                 
+ dense_8 (Dense)             (None, 6)                 774       
+                                                                 
+ lambda_2 (Lambda)           (None, 6)                 0         
+                                                                 
+=================================================================
+Total params: 332,742
+Trainable params: 332,742
+Non-trainable params: 0
+_________________________________________________________________
+
