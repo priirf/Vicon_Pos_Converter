@@ -66,7 +66,7 @@ def get_data_from_data_frame(df_data):
     # t = np.mean(time_i) * 24 * 60 * 60
     time_i = []
     #offset = 2459828.75 #2459794.5 Julian epoch for 03.08.2022//Julian epoch for 5th August 2020: 2459067.00
-    offset = 2459824.95833
+    offset = 2459853.05556 #offset of 30.09 13.20 #2459824.95833
     time_stamps = pd.DatetimeIndex(df_data['timestamp']).to_julian_date()
     #print('julian date:', time_stamps)
  
@@ -79,67 +79,6 @@ def get_data_from_data_frame(df_data):
 
     return X, t
 
-
-def read_data(file):
-    """Read data from a training or test hdf5 file.
-
-    Parameters
-    ----------
-    file : str
-        The path to the file.
-
-    Returns
-    -------
-    list of dict
-        A list of frames. A frame is a dictionary with the keys:
-            'data': pd.DataFrame
-                The sensor data as a pd.DataFrame
-            'vicon_x' array_like
-                The x-coordinate of the true position. (if available)
-            'vicon_y' array_like
-                The y-coordinate of the true position. (if available)
-    np.ndarray
-        The true robot position at each frame.
-        Note: if the data is not available, this will just contain zeros.
-        Shape: [num_frames, 2]
-    np.ndarray
-        The average time of each frame.
-        Shape: [num_frames, 1]
-    np.ndarray
-        The sensor readout data. Sensors without a readout are set to zeros.
-        Shape: [num_frames, 23, 15, 10]
-    """
-
-    # Read a single file as pandas DataFrame
-    df = pd.read_csv(file)
-
-    frames = []
-
-    y = np.zeros([len(df), 2])
-    t = np.zeros([len(df), 1])
-    X = np.zeros([len(df), 23, 15, 10])
-
-    # Generate a single frame for each row
-    for index, row in tqdm(df.T.items(), total=len(df)):
-
-        if 'vicon_x' in row:
-            y[index] = (row.vicon_x, row.vicon_y)
-
-        # Create dictionary with constant values (i.e. labels and frame number)
-        frame = {col: row[col] for col in df.columns if col != 'data'}
-
-        # Create pandas.DataFrame from Json String located in the 'data' column
-        df_i = pd.read_json(row['data'])
-        df_i['timestamp'] = pd.to_datetime(df_i['timestamp'],unit='s')
-        frame['data']  = df_i
-
-        X_i, t_i = get_data_from_data_frame(df_i)
-        X[index] = X_i
-        t[index] = t_i
-
-        frames.append(frame)
-
-    return frames, y, t, X
 
 def get_data_from_old_data_frame(df_data):
     """Get data (X, t) from a data frame.

@@ -33,6 +33,7 @@ predict = False
 KEYS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'r']
 
 rssi_mat = np.zeros((23,15))
+
 data_mag = np.zeros((23,15))
 
 timestamps_array = []
@@ -363,7 +364,7 @@ def on_message(client, userdata, msg):
 
         #to plot the heatmap //uncomment this section
         count += 1
-        if count == 346:
+        if count == 350:
             count_plt += 1
             print(count)
             count = 0
@@ -399,17 +400,20 @@ def on_message(client, userdata, msg):
             plt.ylabel("Node ID", fontsize = 16)
             plt.xlabel("Strip ID", fontsize = 16)
             #plt.figure(figsize=(1.589, 9.88), dpi=100)
-            #plt.tight_layout()
+            #plt.tight_layout()oo
             #plt.savefig('0209_Mag_Static_test2' + str(count_plt) + '.png')
             plt.subplots_adjust(left=0.1, bottom=0.2, right=0.88, top=0.9, hspace=0.3)
             plt.show()
 
         else:
+
             t_df, sensor_data = decode_data(j_msg, strip_id, node_id)
             sensor_data_trans = np.transpose(sensor_data, [1,0,2])
             
+            #np.insert(rssi_mat, 9, np.nan, axis=0)
             rssi_mat = sensor_data_trans[:,:,9]
             data_mag = sensor_data_trans[:,:,6]
+
 
             # if count_plt > 1 and predict:
             #     t_input = Convert_to_julian_date(t_df)   
