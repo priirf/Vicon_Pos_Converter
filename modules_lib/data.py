@@ -58,23 +58,24 @@ def get_data_from_data_frame(df_data):
         X[df_data.strip_id - 1, df_data.node_id - 1, i] = df_data[key]
 
     # Calculate average frame time
-    # time_stamps = df_data.timestamp
-    # time_i = []
-    # offset = 2459825 #2459067
-    # for time_stamp in time_stamps:
-    #     time_i.append(time_stamp.to_julian_date() - offset)
-    # t = np.mean(time_i) * 24 * 60 * 60
+    time_stamps = pd.to_datetime(df_data['timestamp'],unit='s')
+
     time_i = []
     #offset = 2459828.75 #2459794.5 Julian epoch for 03.08.2022//Julian epoch for 5th August 2020: 2459067.00
-    offset = 2459853.05556 #offset of 30.09 13.20 #2459824.95833
-    time_stamps = pd.DatetimeIndex(df_data['timestamp']).to_julian_date()
-    #print('julian date:', time_stamps)
+    offset = 2459852.96875 #offset 11.15 #2459853.05556 #offset of 30.09 13.20 #2459824.95833
+    
+    #time_stamps = pd.DatetimeIndex(df_data['timestamp']).to_julian_date()
+    #print(df_data['timestamp'])
+    #print('input date:', time_stamps)
  
     for time_stamp in time_stamps:
         # time_stamp = ((time_stamp / 86400.0) + 2440587.5)
-        time_i.append(time_stamp - offset)
+        time_i.append(time_stamp.to_julian_date() - offset)
+        #print('julian date:', time_stamp.to_julian_date())
+        #time_i.append(time_stamp - offset)
 
     time_i_avg = np.mean([a for j,a in enumerate(time_i) if a>0])
+    #print('avg_time: ', time_i_avg)
     t = time_i_avg * 24 * 60 * 60
 
     return X, t
