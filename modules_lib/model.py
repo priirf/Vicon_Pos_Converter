@@ -771,7 +771,7 @@ def get_reg_param_index(dt, max_index=12):
         An array of regularization parameter indices. These can be used
         to obtain the regularization parameters for given delta ts.
     """
-    time_per_nth = 0.23  # s
+    time_per_nth = 0.23 #0.23  # s
     index = np.floor(dt / time_per_nth - 0.5).astype(int)
     index = np.clip(index, 0, max_index)
     return index

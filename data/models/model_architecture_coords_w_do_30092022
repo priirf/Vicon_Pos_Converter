@@ -1,0 +1,48 @@
+Model: "sequential_2_coords_dropout 0.05"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d (Conv2D)             (None, 23, 15, 64)        3520      
+                                                                 
+ conv2d_1 (Conv2D)           (None, 23, 15, 64)        36928     
+                                                                 
+ conv2d_2 (Conv2D)           (None, 23, 15, 64)        36928     
+                                                                 
+ average_pooling2d (AverageP  (None, 11, 7, 64)        0         
+ ooling2D)                                                       
+                                                                 
+ conv2d_3 (Conv2D)           (None, 11, 7, 64)         36928     
+                                                                 
+ conv2d_4 (Conv2D)           (None, 11, 7, 64)         36928     
+                                                                 
+ conv2d_5 (Conv2D)           (None, 11, 7, 64)         36928     
+                                                                 
+ average_pooling2d_1 (Averag  (None, 5, 3, 64)         0         
+ ePooling2D)                                                     
+                                                                 
+ conv2d_6 (Conv2D)           (None, 5, 3, 64)          36928     
+                                                                 
+ conv2d_7 (Conv2D)           (None, 5, 3, 64)          36928     
+                                                                 
+ conv2d_8 (Conv2D)           (None, 5, 3, 64)          36928     
+                                                                 
+ average_pooling2d_2 (Averag  (None, 2, 1, 64)         0         
+ ePooling2D)                                                     
+                                                                 
+ flatten (Flatten)           (None, 128)               0         
+                                                                 
+ dropout (Dropout)           (None, 128)               0         
+                                                                 
+ dense (Dense)               (None, 128)               16512     
+                                                                 
+ dense_1 (Dense)             (None, 128)               16512     
+                                                                 
+ dense_2 (Dense)             (None, 6)                 774       
+                                                                 
+ lambda (Lambda)             (None, 6)                 0         
+                                                                 
+=================================================================
+Total params: 332,742
+Trainable params: 332,742
+Non-trainable params: 0
+_________________________________________________________________
