@@ -129,8 +129,8 @@ class ModelWrapper:
     def __init__(
             self, model,
             sensor_norm_file=None,
-            kde_file='data/kdes/kde_vel_abs.pkl',
-            spline_file='data/splines/spline_vel_abs.pkl',
+            kde_file='data/kdes/kde_vel_abs_30092022.pkl',
+            spline_file='data/splines/spline_vel_abs_30092022.pkl',
             ):
         """Initialize the ModelWrapper class.
 
@@ -239,13 +239,14 @@ class ModelWrapper:
         mean = np.nanmean(X_norm, axis=0)
         abs_mean = np.abs(mean)
         std = np.nanstd(X_norm, axis=0)
+        #print(abs_mean, std)
 
         # check if mean is reasonable
         passed_test = True
         if (abs_mean > mean_tol).any():
             passed_test = False
             print('Mean failed:')
-            print(abs_mean[abs_mean > mean_tol])
+            #print(abs_mean[abs_mean > mean_tol])
 
         if ((std > 1*std_tol).any() or (std < 1. / std_tol).any()):
             passed_test = False
@@ -253,18 +254,18 @@ class ModelWrapper:
             mask = np.logical_or(std > 1*std_tol, std < 1./std_tol)
             mask = np.logical_and(mask, std > 0.)
             print('Std failed:')
-            print(std[mask])
+            #print(std[mask])
 
         if not passed_test:
             print('===================')
             print('=== Test Failed ===')
             print('===================')
-            print('Mean: [should be around zero]')
-            print(np.mean(mean, axis=(0, 1)))
-            print()
-            print('Std: [should be around 1]')
-            print(np.std(std, axis=(0, 1)))
-            print('===================')
+            # print('Mean: [should be around zero]')
+            # print(np.mean(mean, axis=(0, 1)))
+            # print()
+            # print('Std: [should be around 1]')
+            # print(np.std(std, axis=(0, 1)))
+            #print('===================')
         return passed_test
 
     def format_data(self, X):
@@ -296,7 +297,7 @@ class ModelWrapper:
         if self.config['add_coordinates']:
             X_norm = append_vicon_coords(X_norm)
         
-        print("X_norm out2: ", X_norm.shape)
+        #print("X_norm out2: ", X_norm.shape)
 
         return X_norm
 
@@ -396,6 +397,8 @@ class ModelWrapper:
 
         # normalize and properly format data
         X_norm = self.format_data(X)
+
+        #print(X_norm)
 
         # run model prediction
         y_pred = self.model.predict(X_norm)
@@ -649,7 +652,8 @@ def likelihood(mu_fit, mu, sigma, r, t, use_kde=False,
         # add regularization: velocity should be small
         # anything above 1.015 m/s should not exist
         # This is pretty independent of the time deltas dt
-        reg_vel = np.sum(reg_velocity_abs(vel_abs, max_cut_off=0.7177))
+        #reg_vel = np.sum(reg_velocity_abs(vel_abs, max_cut_off=0.7177))
+        reg_vel = np.sum(reg_velocity_abs(vel_abs, max_cut_off=0.825))
 
         if kdes is not None:
             reg_kde = 0.
@@ -777,7 +781,7 @@ def get_reg_param_index(dt, max_index=12):
     return index
 
 
-def reg_acc_abs(acc_abs, max_cut_off=0.8, reg_hard=2., reg_soft=0.5):
+def reg_acc_abs(acc_abs, max_cut_off=0.82, reg_hard=2., reg_soft=0.5):
     """Return regularization loss for the magnitude of an acceleration.
 
     Parameters
@@ -789,7 +793,7 @@ def reg_acc_abs(acc_abs, max_cut_off=0.8, reg_hard=2., reg_soft=0.5):
     max_cut_off : float or array_like, optional
         The assumed maximum value that should exist. Anything above this
         is regularized very hard.
-        Shape: [n_pos, 1]
+        Shape: [n_pos, 1] default=0.8
     reg_hard : float or array_like, optional
         The regularization exp factor for values exceeding `max_cut_off`.
         Shape: [n_pos, 1]
@@ -812,7 +816,8 @@ def reg_acc_abs(acc_abs, max_cut_off=0.8, reg_hard=2., reg_soft=0.5):
     return reg
 
 
-def reg_velocity_abs(vel_abs, max_cut_off=0.7177):
+#def reg_velocity_abs(vel_abs, max_cut_off=0.7177):
+def reg_velocity_abs(vel_abs, max_cut_off=0.825):
     """Return regularization loss for the magnitude of the velocity.
 
     Parameters

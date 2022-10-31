@@ -35,7 +35,7 @@ def append_vicon_coords(X):
     return X
 
 
-def get_data_from_data_frame(df_data):
+def get_data_from_data_frame(df_data, offset):
     """Get data (X, t) from a data frame.
 
     Parameters
@@ -62,7 +62,7 @@ def get_data_from_data_frame(df_data):
 
     time_i = []
     #offset = 2459828.75 #2459794.5 Julian epoch for 03.08.2022//Julian epoch for 5th August 2020: 2459067.00
-    offset = 2459852.96875 #offset 11.15 #2459853.05556 #offset of 30.09 13.20 #2459824.95833
+    #offset = 2459872.8379869 #20oct 11.10: 2459872.96528; 8.06:2459872.8379869 #2459852.96875 #offset 11.15 #2459853.05556 #offset of 30.09 13.20 #2459824.95833
     
     #time_stamps = pd.DatetimeIndex(df_data['timestamp']).to_julian_date()
     #print(df_data['timestamp'])
@@ -71,12 +71,13 @@ def get_data_from_data_frame(df_data):
     for time_stamp in time_stamps:
         # time_stamp = ((time_stamp / 86400.0) + 2440587.5)
         time_i.append(time_stamp.to_julian_date() - offset)
-        #print('julian date:', time_stamp.to_julian_date())
+        #print('time:', time_stamp,'julian date:', time_stamp.to_julian_date())
         #time_i.append(time_stamp - offset)
 
     time_i_avg = np.mean([a for j,a in enumerate(time_i) if a>0])
     #print('avg_time: ', time_i_avg)
     t = time_i_avg * 24 * 60 * 60
+    #print('avg_time: ', time_i_avg, t, time_i)
 
     return X, t
 
@@ -117,7 +118,7 @@ def get_data_from_old_data_frame(df_data):
     #print('mean: ', np.mean(time_i), t.shape, t)
     return X, t
 
-def read_data(file):
+def read_data(file, offset):
     """Read data from a training or test hdf5 file.
 
     Parameters
@@ -168,8 +169,9 @@ def read_data(file):
         # Create pandas.DataFrame from Json String located in the 'data' column
         df_i = pd.read_json(row['data'])
         frame['data']  = df_i
+        #print(row['data'])
 
-        X_i, t_i = get_data_from_data_frame(df_i)
+        X_i, t_i = get_data_from_data_frame(df_i, offset)
         X[index] = X_i
         t[index] = t_i
 

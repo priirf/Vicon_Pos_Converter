@@ -26,23 +26,26 @@ count = 0
 count_plt = 0
 cond = True
 
-model_file_i = 'data/models/model_coords_0000'
+model_file_i = 'data/models/model_per_epoch/model_coords_01_with_r4/model_10' #0000_do_005 model_coords_0002_with_all_do model_coords_0005
 model_wrapper = ModelWrapper(model_file_i)
-predict = False
+predict = True
 
 KEYS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'r']
 
 rssi_mat = np.zeros((23,15))
-
 data_mag = np.zeros((23,15))
 
 timestamps_array = []
+offset = 2459877.0729167#must be changed (-2 hours)
 
 X_data = np.zeros([23, 15, 10])
+#X_data = np.zeros([15, 23, 10])
 #rssi_data = np.zeros([1, 23, 15, 10])
 t_i_array = np.zeros((23,15))
+#t_i_array = np.zeros((15,23))
 t_data = np.zeros((345, 1))
 t_batch_i_old_arr = np.zeros((23,15))
+#t_batch_i_old_arr = np.zeros((15,23))
 
 # rssi_mat = np.zeros((15,23))
 # data_mag = np.zeros((15,23))
@@ -129,75 +132,22 @@ def convert_strip_id(mac_id):
         return 23
 
 #Convert unix timestamps to Julian date format
-# def Convert_to_julian_date(t_df):
-    
-#     time_i = []
-#     offset = 2459828.75 #2459794.5 Julian epoch for 03.08.2022//Julian epoch for 5th August 2020: 2459067.00
-#     time_stamps = pd.DatetimeIndex(t_df['timestamp']).to_julian_date()
- 
-#     for time_stamp in time_stamps:
-#         # time_stamp = ((time_stamp / 86400.0) + 2440587.5)
-#         time_i.append(time_stamp - offset)
-
-#     time_i_avg = np.mean([a for j,a in enumerate(time_i) if a>=0])
-#     t = time_i_avg * 24 * 60 * 60
-
-#     return t
-
-# def decode_data(j_msg, strip_id, node_id):
-    
-    global t_batch_i_old_arr, cnt
-    
-    delta_t = 0
-    timestamp_i = 0
-    data = j_msg['data']
-
-    #check timestamp
-    if t_batch_i_old_arr[strip_id-1][node_id-1] < j_msg['timestamp'] and t_batch_i_old_arr[strip_id-1][node_id-1] > 0:
-    
-        delta_t = (j_msg['timestamp'] - t_batch_i_old_arr[strip_id-1][node_id-1])/len(data)
-        
-        #print('1st: ', j_msg['timestamp'])
-        #print('iter > 0: ', delta_t)
-        t_i_batch_old = t_batch_i_old_arr[strip_id-1][node_id-1]
-        t_batch_i_old_arr[strip_id-1][node_id-1] = j_msg['timestamp']
-        print('iter > 0: ', t_i_batch_old)
-        #print('2nd: ', t_batch_i_old_arr[strip_id-1][node_id-1])
-        #cnt += 1
-        #print('count: ', cnt)
-        for i in range(len(data)):
-            t_i = t_i_batch_old + ((1+i)*delta_t)
-            t_i_array[strip_id-1][node_id-1] = t_i
-
-            #print('iter > 0: ', t_i, t_i_array[strip_id-1][node_id-1], len(t_i_array))
-
-            frame = ({'timestamp':t_i,'strip_id':strip_id,'node_id':node_id,
-                'ax':data[i]['a'][0],'ay':data[i]['a'][1],'az':data[i]['a'][2],
-                'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
-                'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
-                'r':data[i]['r'][0]})
-            for i, key in enumerate(KEYS):
-                X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
-        
-    
-            t_out = t_i_array.flatten()
-            t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
-            t_out_df['timestamp'] = pd.to_datetime(t_out_df['timestamp'],unit='s')
-
-            return t_out_df, X_data
-
-#Convert unix timestamps to Julian date format
-def Convert_to_julian_date(t_df):
+def Convert_to_julian_date(t_df, offset):
     
     time_i = []
-    offset = 2459828.75 #2459794.5 Julian epoch for 03.08.2022//Julian epoch for 5th August 2020: 2459067.00
-    time_stamps = pd.DatetimeIndex(t_df['timestamp']).to_julian_date()
+    #offset = 2459828.75 #2459794.5 Julian epoch for 03.08.2022//Julian epoch for 5th August 2020: 2459067.00
+    #time_stamps = pd.DatetimeIndex(t_df['timestamp']).to_julian_date()
+    #print(time_stamps)
+    #time_stamps = pd.to_datetime(t_df['timestamp'],unit='s')
+    time_stamps = t_df.timestamp
  
     for time_stamp in time_stamps:
-        # time_stamp = ((time_stamp / 86400.0) + 2440587.5)
-        time_i.append(time_stamp - offset)
+        time_i.append(time_stamp.to_julian_date() - offset)
+        #time_i.append(time_stamp - offset)
 
-    time_i_avg = np.mean([a for j,a in enumerate(time_i) if a>=0])
+    time_i_avg = np.mean([a for j,a in enumerate(time_i) if a>0])
+    #print(time_i, time_i_avg)
+
     t = time_i_avg * 24 * 60 * 60
 
     return t
@@ -212,13 +162,17 @@ def decode_data(j_msg, strip_id, node_id):
 
     #check timestamp
     if t_batch_i_old_arr[strip_id-1][node_id-1] < j_msg['timestamp'] and t_batch_i_old_arr[strip_id-1][node_id-1] > 0:
+    #if t_batch_i_old_arr[node_id-1][strip_id-1] < j_msg['timestamp'] and t_batch_i_old_arr[node_id-1][strip_id-1] > 0:
     
         delta_t = (j_msg['timestamp'] - t_batch_i_old_arr[strip_id-1][node_id-1])/len(data)
+        #delta_t = (j_msg['timestamp'] - t_batch_i_old_arr[node_id-1][strip_id-1])/len(data)
         
         #print('1st: ', j_msg['timestamp'])
         #print('iter > 0: ', delta_t)
         t_i_batch_old = t_batch_i_old_arr[strip_id-1][node_id-1]
         t_batch_i_old_arr[strip_id-1][node_id-1] = j_msg['timestamp']
+        # t_i_batch_old = t_batch_i_old_arr[node_id-1][strip_id-1]
+        # t_batch_i_old_arr[node_id-1][strip_id-1] = j_msg['timestamp']
         #print('iter > 0: ', t_i_batch_old)
         #print('2nd: ', t_batch_i_old_arr[strip_id-1][node_id-1])
         #cnt += 1
@@ -226,6 +180,7 @@ def decode_data(j_msg, strip_id, node_id):
         for i in range(len(data)):
             t_i = t_i_batch_old + ((1+i)*delta_t)
             t_i_array[strip_id-1][node_id-1] = t_i
+            #t_i_array[node_id-1][strip_id-1] = t_i
 
             #print('iter > 0: ', t_i, t_i_array[strip_id-1][node_id-1], len(t_i_array))
             if data[i]['r'][0] < 0:
@@ -235,14 +190,19 @@ def decode_data(j_msg, strip_id, node_id):
                     'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
                     'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
                     'r':data[i]['r'][0]})
+
+                #df_i = pd.read_json(frame)
+
                 for i, key in enumerate(KEYS):
                     X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
+                    #X_data[node_id - 1, int(strip_id) - 1, i] = frame[key]
+                    #X_data[int(strip_id) - 1, node_id - 1, i] = df_i[key]
                 
                 t_out = t_i_array.flatten()
                 t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
                 t_out_df['timestamp'] = pd.to_datetime(t_out_df['timestamp'],unit='s')
 
-                #print("RSSI normal")
+                print(X_data.shape)
 
                 return t_out_df, X_data
             else:
@@ -251,31 +211,39 @@ def decode_data(j_msg, strip_id, node_id):
                     'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
                     'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
                     'r':np.nan})
+
+                #df_i = pd.read_json(frame)
+
                 for i, key in enumerate(KEYS):
                     X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
+                    #X_data[node_id - 1, int(strip_id) - 1, i] = frame[key]
+                    #X_data[int(strip_id) - 1, node_id - 1, i] = df_i[key]
             
                 
                 t_out = t_i_array.flatten()
                 t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
                 t_out_df['timestamp'] = pd.to_datetime(t_out_df['timestamp'],unit='s')
 
-                #print("RSSI is zero")
+                print(X_data.shape)
 
-                return t_out_df, X_data              
+                return t_out_df, X_data          
 
         
     elif t_batch_i_old_arr[strip_id-1][node_id-1] == 0:
+    #elif t_batch_i_old_arr[node_id-1][strip_id-1] == 0:
         #print('1st: ', j_msg['timestamp'])
         delta_t = 4/19
         
-        t_i_batch_old = j_msg['timestamp'] - 4
-        t_batch_i_old_arr[strip_id-1][node_id-1] = j_msg['timestamp']
+        t_first = j_msg['timestamp'] - 4
+        t_batch_i_old_arr[strip_id-1][node_id-1] = t_first #j_msg['timestamp']
+        #t_batch_i_old_arr[node_id-1][strip_id-1] = t_first #j_msg['timestamp']
         #print('2nd: ', t_i_batch_old, t_batch_i_old_arr[strip_id-1][node_id-1])
         #print('iter 0: ', strip_id, node_id, t_i_batch_old, t_batch_i_old_arr[strip_id-1][node_id-1] )
 
         for i in range(len(data)):
-            t_i = t_i_batch_old + ((1+i)*delta_t)
+            t_i = t_first + ((1+i)*delta_t)
             t_i_array[strip_id-1][node_id-1] = t_i
+            #t_i_array[node_id-1][strip_id-1] = t_i
             
             if data[i]['r'][0] < 0:
 
@@ -284,9 +252,13 @@ def decode_data(j_msg, strip_id, node_id):
                     'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
                     'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
                     'r':data[i]['r'][0]})
+
+                #df_i = pd.read_json(frame)
+
                 for i, key in enumerate(KEYS):
                     X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
-            
+                    #X_data[node_id - 1, int(strip_id) - 1, i] = frame[key]
+                    
                 
                 t_out = t_i_array.flatten()
                 t_out_df = pd.DataFrame(t_out, columns=['timestamp'])
@@ -295,14 +267,20 @@ def decode_data(j_msg, strip_id, node_id):
                 #print("0, RSSI normal")
 
                 return t_out_df, X_data
+
             else:
                 frame = ({'timestamp':t_i,'strip_id':strip_id,'node_id':node_id,
                     'ax':data[i]['a'][0],'ay':data[i]['a'][1],'az':data[i]['a'][2],
                     'gx':data[i]['g'][0],'gy':data[i]['g'][1],'gz':data[i]['g'][2],
                     'mx':data[i]['m'][0],'my':data[i]['m'][1],'mz':data[i]['m'][2],
                     'r':np.nan})
+
+                #df_i = pd.read_json(frame)
+
                 for i, key in enumerate(KEYS):
                     X_data[int(strip_id) - 1, node_id - 1, i] = frame[key]
+                    #X_data[node_id - 1, int(strip_id) - 1, i] = frame[key]
+                    #X_data[int(strip_id) - 1, node_id - 1, i] = df_i[key]
             
                 
                 t_out = t_i_array.flatten()
@@ -311,6 +289,7 @@ def decode_data(j_msg, strip_id, node_id):
 
                 #print("0, RSSI is zero")
                 return t_out_df, X_data  
+
 # This is the Subscriber
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
@@ -350,15 +329,8 @@ def on_message(client, userdata, msg):
     if msg.payload.decode():
         global count, count_plt, rssi_mat, data_mag
         j_msg = json.loads(msg.payload.decode('utf-8'))
-        data = j_msg['data']
-
-        # for i in range(len(data)):
-        #     rssi.append(data[i]['r'])
-        #     #print((data[i]['r']))
-        #     magnetometer.append(data[i]['m'])
-
-        # rssi_avg = np.round(np.mean(rssi, axis=0),2)
-        # magneto_avg = np.round(np.mean(magnetometer, axis=0),2)
+        #data = j_msg['data']
+        #print(data)
         strip_id = convert_strip_id(j_msg['strip_id'])
         node_id = int(j_msg['node_id'])
 
@@ -369,64 +341,83 @@ def on_message(client, userdata, msg):
             print(count)
             count = 0
             print("--------------------------------------------------------")
-            #t_df, sensor_data = decode_data(j_msg, strip_id, node_id)
-            #sensor_data = np.transpose(sensor_data, [0,2,1,3])
+            t_df, sensor_data = decode_data(j_msg, strip_id, node_id)
+            #sensor_data = np.transpose(sensor_data, [1,0,2])
             
 
-            print(rssi_mat)
-            print(data_mag)
+            # print(rssi_mat)
+            # print(data_mag)
             #rssi_mat_transpose = np.transpose(rssi_mat)
-            fig = plt.figure(figsize=(12, 14))
+            # fig = plt.figure(figsize=(14, 12))
           
-            ax1 = fig.add_subplot(211)
-            #ax1 = plt.subplots(figsize=(10,7))
-            ax1 = sns.heatmap(rssi_mat, annot=False, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
-            ax1.figure.axes[-1].yaxis.label.set_size(14)
+            # ax1 = fig.add_subplot(211)
+            # #ax1 = plt.subplots(figsize=(10,7))
+            # ax1 = sns.heatmap(rssi_mat, annot=False, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
+            # #ax1 = sns.heatmap(sensor_data[:,:,9], annot=False, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
+            # ax1.figure.axes[-1].yaxis.label.set_size(14)
        
-            plt.title("RSSI Heatmap", fontsize = 16)
-            plt.ylabel("Node ID", fontsize = 16)
-            plt.xlabel("Strip ID", fontsize = 16)
-            #plt.figure(figsize=(1.589, 9.88), dpi=100)
-            #plt.tight_layout()
-            #plt.savefig('0209_RSSI_Static_test2' + str(count_plt) + '.png')
-            #plt.show()
+            # plt.title("RSSI Heatmap", fontsize = 16)
+            # plt.ylabel("Node ID", fontsize = 16)
+            # plt.xlabel("Strip ID", fontsize = 16)
+            # #plt.figure(figsize=(1.589, 9.88), dpi=100)
+            # #plt.tight_layout()
+            # #plt.savefig('0209_RSSI_Static_test2' + str(count_plt) + '.png')
+            # #plt.show()
 
-            #data_mag_transpose = np.transpose(data_mag)
-            ax2 = fig.add_subplot(212)
-            ax2 = sns.heatmap(data_mag, annot=False, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
-            ax2.figure.axes[-1].yaxis.label.set_size(14)
-    
-            plt.title("Magnetometer Heatmap", fontsize = 16)
-            plt.ylabel("Node ID", fontsize = 16)
-            plt.xlabel("Strip ID", fontsize = 16)
-            #plt.figure(figsize=(1.589, 9.88), dpi=100)
-            #plt.tight_layout()oo
-            #plt.savefig('0209_Mag_Static_test2' + str(count_plt) + '.png')
-            plt.subplots_adjust(left=0.1, bottom=0.2, right=0.88, top=0.9, hspace=0.3)
-            plt.show()
+            # #data_mag_transpose = np.transpose(data_mag)
+            # ax2 = fig.add_subplot(212)
+            # ax2 = sns.heatmap(data_mag, annot=False, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
+            # #ax2 = sns.heatmap(sensor_data[:,:,6], annot=False, cbar_kws={'label': 'Magnetic Field'}, cmap="YlGnBu")
+            # ax2.figure.axes[-1].yaxis.label.set_size(14)
+
+
+            # # # AXES PROPERTIES VICON COORDINATES
+            # # ax2.set_xlim(-11.185, 10.185)
+            # # ax2.set_ylim(-6.425, 7.575)
+            # # ax2.set_xlabel('X(t)', fontsize=16)
+            # # ax2.set_ylabel('Y(t)', fontsize=16)
+            # # ax2.set_title('Location Prediction')
+
+            # plt.title("Magnetometer Heatmap", fontsize = 16)
+            # plt.ylabel("Node ID", fontsize = 16)
+            # plt.xlabel("Strip ID", fontsize = 16)
+            # #plt.figure(figsize=(1.589, 9.88), dpi=100)
+            # #plt.tight_layout()oo
+            # #plt.savefig('0209_Mag_Static_test2' + str(count_plt) + '.png')
+            # plt.subplots_adjust(left=0.1, bottom=0.2, right=0.88, top=0.9, hspace=0.3)
+            # plt.show()
 
         else:
 
             t_df, sensor_data = decode_data(j_msg, strip_id, node_id)
             sensor_data_trans = np.transpose(sensor_data, [1,0,2])
-            
+            #print('t_df:',t_df)
+            #print('sensor_data:', sensor_data.shape)
+
             #np.insert(rssi_mat, 9, np.nan, axis=0)
             rssi_mat = sensor_data_trans[:,:,9]
             data_mag = sensor_data_trans[:,:,6]
+            #rssi_mat = sensor_data[:,:,9]
+            #data_mag = sensor_data[:,:,6]
 
 
-            # if count_plt > 1 and predict:
-            #     t_input = Convert_to_julian_date(t_df)   
-            #     X_input_predict = sensor_data.reshape([1, 23, 15, 10])
-            #     t_input_predict = t_input.reshape([1,1])
-            #     print('in loop: ',t_df, 'test X: ', X_input_predict.shape, t_input_predict.shape)
-            #     coord_predict = model_wrapper.predict(X_input_predict, t_input_predict)
-            #     print("vicon predict: ", coord_predict[0][0], ",", coord_predict[0][1])
+            if count_plt > 1 and predict:
+                t_input = Convert_to_julian_date(t_df, offset)   
+                #print('t_input:',t_input, 'X shape:', sensor_data.shape)
+                #X_input_predict = sensor_data.reshape([-1, 23, 15, 10])
+                X_input_predict = np.reshape(sensor_data, [-1, 23, 15, 10])
+                #rssi_data = X_input_predict[:,:,:,9]
+                #print('rssi data: ', rssi_data)
+                #t_input_predict = t_input.reshape([-1,1])
+                t_input_predict = np.reshape(t_input, [-1, 1])
+                #print('in loop: ',t_input, t_input_predict,'test X: ', X_input_predict.shape, X_input_predict, t_input_predict.shape)
+                coord_predict = model_wrapper.predict(X_input_predict, t_input_predict, check_data=True)
+                print("vicon predict: ", coord_predict[0][0], ",", coord_predict[0][1])
 
-            #     vicon_predict = str(coord_predict[0][0]) + ", " + str(coord_predict[0][1])
-            #     with open("test_prediction_1609_6_tx_bottom_mid.txt", "a") as test_data:
-            #         test_data.write(vicon_predict + '\n')
-            #     test_data.close()
+                vicon_predict = str(time())+ ", " + str(coord_predict[0][0]) + ", " + str(coord_predict[0][1])
+                with open("test_prediction_2810_test_run3.txt", "a") as test_data:
+                    test_data.write(vicon_predict + '\n')
+                test_data.close()
         
         #print(data)
  
@@ -440,10 +431,10 @@ print("connecting to broker")
 client.on_connect = on_connect
 client.on_message = on_message
 client.enable_bridge_mode()
-#client.loop_forever()
+client.loop_forever()
 
-try:
-    client.loop_forever()
-except:
-  print('disconnect')
-  client.disconnect()
+# try:
+#     client.loop_forever()
+# except:
+#   print('disconnect')
+#   client.disconnect()
