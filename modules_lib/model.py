@@ -129,8 +129,8 @@ class ModelWrapper:
     def __init__(
             self, model,
             sensor_norm_file=None,
-            kde_file='data/kdes/kde_vel_abs_30092022.pkl',
-            spline_file='data/splines/spline_vel_abs_30092022.pkl',
+            kde_file='data/kdes/kde_vel_abs_24102022.pkl',
+            spline_file='data/splines/spline_vel_abs_24102022.pkl',
             ):
         """Initialize the ModelWrapper class.
 
@@ -775,7 +775,7 @@ def get_reg_param_index(dt, max_index=12):
         An array of regularization parameter indices. These can be used
         to obtain the regularization parameters for given delta ts.
     """
-    time_per_nth = 0.23 #0.23  # s
+    time_per_nth = 0.18 #0.23  # s
     index = np.floor(dt / time_per_nth - 0.5).astype(int)
     index = np.clip(index, 0, max_index)
     return index

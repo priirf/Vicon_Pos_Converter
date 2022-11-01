@@ -5,6 +5,7 @@ import pandas as pd
 from time import sleep, time
 import seaborn as sns
 import matplotlib.pylab as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from modules_lib.model import ModelWrapper
 
 
@@ -14,6 +15,8 @@ accelerometer = []
 gyroscope = []
 magnetometer = []
 rssi = []
+predict_vicon_x = []
+predict_vicon_y = []
 
 timestamp = np.zeros((1,1))
 
@@ -37,6 +40,44 @@ data_mag = np.zeros((23,15))
 
 timestamps_array = []
 offset = 2459877.0729167#must be changed (-2 hours)
+
+plt.ion()
+
+fig = plt.figure(figsize=(12, 14))
+fig.canvas.set_window_title('Sensor Floor Interface')
+
+
+ax1 = fig.add_subplot(211)
+ax1.set_xlabel('Strip ID', fontsize=16)
+ax1.set_ylabel('Node ID', fontsize=16)
+ax1.set_title('RSSI Heatmap', fontsize=16)
+ax1.tick_params(axis='both', labelsize=16)
+im_h = ax1.imshow(rssi_mat, cmap="YlGnBu", aspect='auto')
+
+# # AXES PROPERTIES VICON COORDINATES
+ax2 = fig.add_subplot(212)
+ax2.set_xlim(-11.185, 10.185)
+ax2.set_ylim(-6.425, 7.575)
+ax2.set_xlabel('X(t)', fontsize=16)
+ax2.set_ylabel('Y(t)', fontsize=16)
+ax2.set_title('Trajectory Prediction', fontsize=16)
+ax2.tick_params(axis='both', labelsize=16)
+ax2.grid()
+
+axins = inset_axes(ax1,
+    width="1%",  # width = 5% of parent_bbox width
+    height="80%",  # height : 50%
+    loc='lower left',
+    bbox_to_anchor=(1.01, 1.25, 1, 1),
+    bbox_transform=ax2.transAxes,
+    borderpad=0,
+    )
+cbar = plt.colorbar(im_h, cax=axins, ax=ax1)
+cbar.set_label(label='RSSI (dBm)', size=15)
+cbar.ax.tick_params(labelsize=12)
+fig.subplots_adjust(left=0.08, hspace=0.25)
+
+line = ax2.plot(predict_vicon_x[:], predict_vicon_y[:], lw=2, c='g')[0] # For line plot
 
 X_data = np.zeros([23, 15, 10])
 #X_data = np.zeros([15, 23, 10])
@@ -325,6 +366,7 @@ def store_and_publish_msg(strip_id, node_id, rssi, magnetometer):
     ret = client.publish(mqtt_publish_topic, json.dumps(msg_to_laser))
     print(msg_to_laser)
 
+
 def on_message(client, userdata, msg):
     if msg.payload.decode():
         global count, count_plt, rssi_mat, data_mag
@@ -336,21 +378,23 @@ def on_message(client, userdata, msg):
 
         #to plot the heatmap //uncomment this section
         count += 1
-        if count == 350:
+        if count == 100:
             count_plt += 1
             print(count)
             count = 0
             print("--------------------------------------------------------")
             t_df, sensor_data = decode_data(j_msg, strip_id, node_id)
             #sensor_data = np.transpose(sensor_data, [1,0,2])
-            
-
+            #im_h, line, fig = init_plot_ui()
+            im_h.set_data(rssi_mat)
+            line.set_xdata(predict_vicon_x[:])
+            line.set_ydata(predict_vicon_y[:])
+            fig.canvas.draw()
+            fig.canvas.flush_events()
             # print(rssi_mat)
             # print(data_mag)
             #rssi_mat_transpose = np.transpose(rssi_mat)
-            # fig = plt.figure(figsize=(14, 12))
-          
-            # ax1 = fig.add_subplot(211)
+           
             # #ax1 = plt.subplots(figsize=(10,7))
             # ax1 = sns.heatmap(rssi_mat, annot=False, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
             # #ax1 = sns.heatmap(sensor_data[:,:,9], annot=False, cbar_kws={'label': 'RSSI'}, cmap="YlGnBu")
@@ -391,8 +435,6 @@ def on_message(client, userdata, msg):
 
             t_df, sensor_data = decode_data(j_msg, strip_id, node_id)
             sensor_data_trans = np.transpose(sensor_data, [1,0,2])
-            #print('t_df:',t_df)
-            #print('sensor_data:', sensor_data.shape)
 
             #np.insert(rssi_mat, 9, np.nan, axis=0)
             rssi_mat = sensor_data_trans[:,:,9]
@@ -404,22 +446,18 @@ def on_message(client, userdata, msg):
             if count_plt > 1 and predict:
                 t_input = Convert_to_julian_date(t_df, offset)   
                 #print('t_input:',t_input, 'X shape:', sensor_data.shape)
-                #X_input_predict = sensor_data.reshape([-1, 23, 15, 10])
                 X_input_predict = np.reshape(sensor_data, [-1, 23, 15, 10])
-                #rssi_data = X_input_predict[:,:,:,9]
-                #print('rssi data: ', rssi_data)
-                #t_input_predict = t_input.reshape([-1,1])
                 t_input_predict = np.reshape(t_input, [-1, 1])
                 #print('in loop: ',t_input, t_input_predict,'test X: ', X_input_predict.shape, X_input_predict, t_input_predict.shape)
                 coord_predict = model_wrapper.predict(X_input_predict, t_input_predict, check_data=True)
                 print("vicon predict: ", coord_predict[0][0], ",", coord_predict[0][1])
-
-                vicon_predict = str(time())+ ", " + str(coord_predict[0][0]) + ", " + str(coord_predict[0][1])
-                with open("test_prediction_2810_test_run3.txt", "a") as test_data:
-                    test_data.write(vicon_predict + '\n')
-                test_data.close()
+                predict_vicon_x.append(coord_predict[0][0])
+                predict_vicon_y.append(coord_predict[0][1])
+                #vicon_predict = str(time())+ ", " + str(coord_predict[0][0]) + ", " + str(coord_predict[0][1])
+                # with open("test_prediction_2810_test_run3.txt", "a") as test_data:
+                #     test_data.write(vicon_predict + '\n')
+                # test_data.close()
         
-        #print(data)
  
 
 #fab imuread must run in parallel to trigger the broker
